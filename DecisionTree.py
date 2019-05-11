@@ -1,7 +1,7 @@
 class Node(object):
     def __init__(self):
         # TO DO
-    pass
+        pass
 
 
 class DecisionTree(object):
