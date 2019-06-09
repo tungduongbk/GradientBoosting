@@ -141,16 +141,16 @@ class ClassificationTree(DecisionTree):
 
 class RegressionTree(DecisionTree):
 
-    def calculate_variance(self, X):
+    def _calculate_variance(self, X):
         mean = np.ones(np.shape(X)) * X.mean(0)
         n_samples = np.shape(X)[0]
         variance = (1 / n_samples) * np.diag((X - mean).T.dot(X - mean))
         return variance
 
     def _calculate_impurity(self, y, y1, y2):
-        var_tot = calculate_variance(y)
-        var_1 = calculate_variance(y1)
-        var_2 = calculate_variance(y2)
+        var_tot = self._calculate_variance(y)
+        var_1 = self._calculate_variance(y1)
+        var_2 = self._calculate_variance(y2)
         frac_1 = len(y1) / len(y)
         frac_2 = len(y2) / len(y)
         variance_reduction = var_tot - (frac_1 * var_1 + frac_2 * var_2)
