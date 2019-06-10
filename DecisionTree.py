@@ -19,8 +19,11 @@ class DecisionTree(ABC):
         self.max_depth = max_depth
         self.min_impurity = min_impurity
 
-    def fit(self, X, y):
-        self.root = self._split_tree(X, y)
+    def fit(self, X, y, metric="gini_index"):
+        if metric != "gini_index":
+            if metric != "gain_ratio":
+                metric = "gini_index"
+        self.root = self._split_tree(X, y,metric)
 
     def _get_values_on_feature(self, X, feature, value):
         Xy1 = []
@@ -38,7 +41,7 @@ class DecisionTree(ABC):
                     Xy2.append(sample)
         return np.array(Xy1), np.array(Xy2)
 
-    def _split_tree(self, X, y, cur_depth=0):
+    def _split_tree(self, X, y, metric, cur_depth=0):
         print('input', y)
         max_impurity = 0
         best_split = None
@@ -58,7 +61,7 @@ class DecisionTree(ABC):
                     if len(Xy1) > 0 and len(Xy2) > 0:
                         y1 = Xy1[:, -1:]
                         y2 = Xy2[:, -1:]
-                        impurity = self._calculate_impurity(y, y1, y2)
+                        impurity = self._calculate_impurity(y, y1, y2,metric)
                         if impurity > max_impurity:
                             max_impurity = impurity
                             best_split = {
@@ -74,9 +77,9 @@ class DecisionTree(ABC):
                             print('best_sets', best_sets)
         if max_impurity > self.min_impurity:
             left_true = self._split_tree(best_sets["left_set_X"], 
-                                            best_sets["left_set_y"], cur_depth+1) 
+                                            best_sets["left_set_y"],metric, cur_depth+1)
             right_wrong = self._split_tree(best_sets["right_set_X"],
-                                            best_sets["right_set_y"], cur_depth+1)
+                                            best_sets["right_set_y"],metric, cur_depth+1)
             return TreeNode(feature_i=best_split["best_feature"], value_selected=best_split["best_value"],
                             left_true=left_true, right_wrong=right_wrong)
 
@@ -102,8 +105,27 @@ class DecisionTree(ABC):
         y_pred = [self.predict_value(sample) for sample in X]
         return y_pred
 
+    def print_tree(self, tree=None, indent=" "):
+        """ Recursively print the decision tree """
+        if not tree:
+            tree = self.root
+
+        # If we're at leaf => print the label
+        if tree.value_voted is not None:
+            print(tree.value_voted)
+        # Go deeper down the tree
+        else:
+            # Print test
+            print("%s==%s? " % (tree.feature_i, tree.value_selected))
+            # Print the true scenario
+            print("%sT->" % (indent), end="")
+            self.print_tree(tree.left_true, indent + indent)
+            # Print the false scenario
+            print("%sF->" % (indent), end="")
+            self.print_tree(tree.right_wrong, indent + indent)
+
     @abstractmethod
-    def _calculate_impurity(self, y, y1, y2):
+    def _calculate_impurity(self, y, y1, y2,metric):
         pass
 
     @abstractmethod
@@ -121,12 +143,32 @@ class ClassificationTree(DecisionTree):
             entropy += -p*log2(p)
         return entropy
 
-    def _calculate_impurity(self, y, y1 ,y2):
+    def _calculate_gini(self, y):
+        size = len(y)
+        gini = 1
+        # Return 0 impurity for the empty set
+        if size == 0:
+            return 0.0
+        # Get counts of element values in array
+        uniques, counts = np.unique(y, return_counts=True)
+        # Calculate impurity = 1 - sum(squared_probability)
+        for count in counts:
+            gini += -(count / size) * (count / size)
+        return gini
+
+    def _calculate_impurity(self, y, y1 ,y2,metric):
         p = len(y1)/len(y)
-        gain = self._calculate_entropy(y)
-        print(gain)
-        info_gain = gain - p*self._calculate_entropy(y1) - (1-p)*self._calculate_entropy(y2)
-        return info_gain
+        impurity_parent = 0
+        impurity_child = 0
+
+        if metric == 'gini_index':
+            impurity_parent = self._calculate_gini(y)
+            impurity_child = p * self._calculate_gini(y1) + (1 - p) * self._calculate_gini(y2)
+        if metric == 'gain_ratio':
+            impurity_parent = self._calculate_entropy(y)
+            impurity_child = p*self._calculate_entropy(y1) + (1-p)*self._calculate_entropy(y2)
+        gain = impurity_parent - impurity_child
+        return gain
 
     def _calculate_leaf_value(self, y):
         max_no_value = 0

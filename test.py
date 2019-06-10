@@ -19,7 +19,7 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
     clf = ClassificationTree()
-    clf.fit(X_train, y_train)
+    clf.fit(X_train, y_train,metric="gini_index")
     y_pred = clf.predict(X_test)
 
     accuracy = accuracy_score(y_test, y_pred)
