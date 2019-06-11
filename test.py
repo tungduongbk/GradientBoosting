@@ -8,6 +8,9 @@ import os
 from Utils import train_test_split, accuracy_score, mean_squared_error
 from DecisionTree import ClassificationTree
 
+class ABNa(ClassificationTree):
+    pass
+
 def main():
 
     print ("-- Classification Tree --")
@@ -15,11 +18,10 @@ def main():
     data = datasets.load_iris()
     X = data.data
     y = data.target
-
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
-    clf = ClassificationTree()
-    clf.fit(X_train, y_train,metric="gini_index")
+    clf = ABNa(metric = 'gain_ratio')
+    clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
 
     accuracy = accuracy_score(y_test, y_pred)
